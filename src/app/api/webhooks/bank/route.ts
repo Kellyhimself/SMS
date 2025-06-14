@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BankServiceFactory } from '@/services/bank-payment/bank-service-factory';
-import { generateReceiptAndNotify } from '@/app/actions/payment-notifications';
+import { feeService } from '@/services/fee.service';
+import { notificationService } from '@/services/notification.service';
+import { generateReceipt } from '@/lib/receipt';
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,13 +48,25 @@ export async function POST(req: NextRequest) {
       webhookData.amount
     );
 
-    // Generate receipt and send notifications for successful payments
+    // Handle successful payments
     if (webhookData.status === 'success') {
-      await generateReceiptAndNotify(
+      // Get fee details
+      const fee = await feeService.getFeeById(feeId);
+      if (!fee) {
+        throw new Error('Fee not found');
+      }
+
+      // Generate receipt
+      const receipt = await generateReceipt(fee, webhookData.transaction_id);
+
+      // Send notifications
+      await notificationService.sendPaymentConfirmation({
         feeId,
-        webhookData.transaction_id,
-        webhookData.amount
-      );
+        studentId: fee.student_id,
+        amount: webhookData.amount,
+        transactionId: webhookData.transaction_id,
+        receiptUrl: receipt.url
+      });
     }
 
     return NextResponse.json({ success: true });
