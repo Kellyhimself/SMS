@@ -20,7 +20,7 @@ export default function FeesPage() {
   const [filters, setFilters] = useState<FeeFilters>({
     sortBy: 'date',
     sortOrder: 'desc',
-    status: 'all'
+    status: undefined
   })
   const [searchQuery, setSearchQuery] = useState('')
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -35,7 +35,7 @@ export default function FeesPage() {
     const matchesSearch = !searchQuery || 
       fee.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fee.student_admission_number?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = !filters.status || filters.status === 'all' || fee.status === filters.status
+    const matchesStatus = !filters.status || fee.status === filters.status
     const feeDate = new Date(fee.date)
     const matchesStartDate = !filters.startDate || feeDate >= filters.startDate
     const matchesEndDate = !filters.endDate || feeDate <= filters.endDate
@@ -43,10 +43,12 @@ export default function FeesPage() {
   })
 
   // Calculate financial metrics
-  const totalPendingFees = filteredFees?.filter(fee => fee.status === 'pending')
-    .reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0
-  const totalRevenue = filteredFees?.filter(fee => fee.status === 'paid')
-    .reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0
+  const totalPendingFees = filteredFees?.reduce((sum, fee) => {
+    const pending = fee.amount - (fee.amount_paid || 0)
+    return pending > 0 ? sum + pending : sum
+  }, 0) || 0
+
+  const totalRevenue = filteredFees?.reduce((sum, fee) => sum + (fee.amount_paid || 0), 0) || 0
 
   if (error) {
     return (
@@ -177,8 +179,8 @@ export default function FeesPage() {
                   <div className="space-y-2">
                     <Label htmlFor="status" className="text-base">Status</Label>
                     <Select
-                      value={filters.status}
-                      onValueChange={(value) => setFilters({ ...filters, status: value })}
+                      value={filters.status ?? 'all'}
+                      onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value as FeeFilters['status'] })}
                     >
                       <SelectTrigger className="text-base">
                         <SelectValue placeholder="All Statuses" />

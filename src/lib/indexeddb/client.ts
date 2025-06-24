@@ -119,23 +119,23 @@ export interface SchoolDB extends DBSchema {
     indexes: { 'by-fee': string }
   }
   notifications: {
-    key: { keyPath: 'id' },
+    key: string
     value: {
-      id: 'string',
-      type: 'string',
-      message: 'string',
-      recipient_email: 'string',
-      recipient_phone: 'string',
-      status: 'string',
-      error_message: 'string',
-      school_id: 'string',
-      sent_at: 'string',
-      created_at: 'string',
-      updated_at: 'string',
-      sync_status: 'string'
-    },
+      id: string
+      type: 'sms' | 'email' | 'whatsapp'
+      message: string
+      recipient_email?: string | null
+      recipient_phone?: string | null
+      status: 'pending' | 'sent' | 'failed'
+      error_message?: string
+      school_id: string
+      sent_at?: string | null
+      created_at: string
+      updated_at: string
+      sync_status: 'pending' | 'synced'
+    }
     indexes: {
-      'by-school': { keyPath: 'school_id' }
+      'by-school': string
     }
   }
   sync_queue: {

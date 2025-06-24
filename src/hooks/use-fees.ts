@@ -7,7 +7,7 @@ import { addToSyncQueue } from '@/lib/sync/sync-service'
 import { generateReceipt } from '@/lib/receipt'
 import { NotificationService } from '@/services/notification.service'
 import { studentService } from '@/services/student.service'
-import { toast } from 'sonner'
+
 
 type FeeWithStudents = Fee & {
   students: {

@@ -1,15 +1,7 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import { NotificationService } from '@/services/notification.service'
-import { Resend } from 'resend'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface SendBulkMessageParams {
   message: string
@@ -34,58 +26,45 @@ export async function sendBulkMessage({
   schoolId
 }: SendBulkMessageParams): Promise<SendBulkMessageResult> {
   try {
+    console.log('[sendBulkMessage] Called with:', { message, type, recipientIds, schoolId })
+    
+    // Create server-side Supabase client with user's session
+    const supabase = await createClient()
+    
+    // Check authenticated user
+    const { data: userData } = await supabase.auth.getUser();
+    console.log('[sendBulkMessage] Authenticated user:', userData?.user);
+    if (!userData?.user) {
+      throw new Error('User is not authenticated');
+    }
+    
     // Get recipients' contact information
+    console.log('[sendBulkMessage] Fetching recipients from Supabase...')
     const { data: recipients, error: fetchError } = await supabase
       .from('students')
       .select('id, name, parent_phone, parent_email')
       .in('id', recipientIds)
       .eq('school_id', schoolId)
 
+    console.log('[sendBulkMessage] Recipients fetch result:', { recipients, fetchError })
     if (fetchError) throw fetchError
 
     const stats = { success: 0, failed: 0 }
-    const notificationService = type === 'sms' ? NotificationService.getInstance() : null
+    const notificationService = NotificationService.getInstance()
+    notificationService.setSchoolId(schoolId)
 
-    // Create notification record
-    const { data: notification, error: notificationError } = await supabase
-      .from('notifications')
-      .insert({
-        message,
-        type,
-        status: 'pending',
-        school_id: schoolId
-      })
-      .select()
-      .single()
-
-    if (notificationError) throw notificationError
-
-    // Send messages
+    // Send messages using NotificationService
     for (const recipient of recipients) {
       try {
         if (type === 'sms' && recipient.parent_phone) {
-          if (!notificationService) {
-            throw new Error('Notification service not initialized')
-          }
           await notificationService.sendSMS(recipient.parent_phone, message)
           stats.success++
         } else if (type === 'email' && recipient.parent_email) {
-          if (!process.env.RESEND_API_KEY) {
-            throw new Error('Resend API key is not configured')
-          }
-
-          const emailResponse = await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: recipient.parent_email,
-            subject: 'School Communication',
-            text: message
-          })
-
-          if (!emailResponse || emailResponse.error) {
-            throw new Error(emailResponse?.error?.message || 'Failed to send email')
-          }
-
-          console.log(`Email sent successfully to ${recipient.parent_email}:`, emailResponse)
+          await notificationService.sendEmail(
+            recipient.parent_email,
+            'School Communication',
+            message
+          )
           stats.success++
         } else {
           console.warn(`No valid contact method for ${recipient.name}`)
@@ -97,30 +76,24 @@ export async function sendBulkMessage({
       }
     }
 
-    // Update notification status
-    await supabase
-      .from('notifications')
-      .update({
-        status: stats.failed === 0 ? 'sent' : 'failed',
-        sent_at: new Date().toISOString()
-      })
-      .eq('id', notification.id)
-
-    return {
-      success: true,
-      stats
+    return { 
+      success: stats.failed === 0, 
+      stats,
+      error: stats.failed > 0 ? `Failed to send to ${stats.failed} recipients` : undefined
     }
-  } catch (error) {
-    console.error('Failed to send bulk message:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to send message'
+  } catch (error: any) {
+    console.error('[sendBulkMessage] Error:', error)
+    return { 
+      success: false, 
+      error: error.message,
+      stats: { success: 0, failed: 0 }
     }
   }
 }
 
 export async function getCommunications(schoolId: string) {
   try {
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('notifications')
       .select('*')

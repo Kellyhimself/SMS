@@ -6,12 +6,15 @@ import { useStudents } from '@/hooks/use-students'
 import { useAuth } from '@/hooks/use-auth'
 import { getCommunications } from '@/app/actions/communications'
 import { useEffect, useState } from 'react'
+import { useFees } from '@/hooks/use-fees'
+import { formatCurrency } from '@/lib/utils'
 
 export default function DashboardPage() {
   const { school } = useAuth()
   const { data: students } = useStudents()
   const [communications, setCommunications] = useState([])
   const [academicYear, setAcademicYear] = useState('')
+  const { data: fees = [], isLoading: isLoadingFees } = useFees()
 
   useEffect(() => {
     const fetchCommunications = async () => {
@@ -40,6 +43,12 @@ export default function DashboardPage() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     return commDate >= sevenDaysAgo
   }).length
+
+  // Fee metrics
+  const totalBilled = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0)
+  const totalPaid = fees.reduce((sum, fee) => sum + (fee.amount_paid || 0), 0)
+  const totalPending = fees.reduce((sum, fee) => sum + Math.max(fee.amount - (fee.amount_paid || 0), 0), 0)
+  const collectionRate = totalBilled > 0 ? (totalPaid / totalBilled) * 100 : 0
 
   return (
     <div className="space-y-6 p-6">
@@ -171,12 +180,47 @@ export default function DashboardPage() {
 
       {/* Customizable Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Fee Collection Overview</h2>
-          <div className="h-[200px] flex items-center justify-center bg-muted/50 rounded-lg">
-            <p className="text-muted-foreground">Chart will be displayed here</p>
-          </div>
-        </Card>
+      <Card className="p-8 rounded-lg shadow-sm">
+  <h2 className="text-xl font-semibold mb-6">Fee Collection Overview</h2>
+  {isLoadingFees ? (
+    <div className="h-[200px] flex items-center justify-center bg-muted/50 rounded-lg">
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  ) : (
+    <div className="space-y-8">
+      <div className="flex flex-col gap-6">
+        <div className="p-4 rounded-md">
+          <p className="text-sm text-muted-foreground mb-2">Total Billed</p>
+          <p className="font-bold text-lg">{formatCurrency(totalBilled)}</p>
+        </div>
+        <div className="p-4 rounded-md">
+          <p className="text-sm text-muted-foreground mb-2">Total Paid</p>
+          <p className="font-bold text-lg text-green-700">{formatCurrency(totalPaid)}</p>
+        </div>
+        <div className="p-4 rounded-md">
+          <p className="text-sm text-muted-foreground mb-2">Total Pending</p>
+          <p className="font-bold text-lg text-yellow-700">{formatCurrency(totalPending)}</p>
+        </div>
+        <div className="p-4 rounded-md">
+          <p className="text-sm text-muted-foreground mb-2">Collection Rate</p>
+          <p className="font-bold text-lg">{collectionRate.toFixed(1)}%</p>
+        </div>
+      </div>
+      <div className="mt-6">
+        <div className="flex justify-between mb-3">
+          <span className="text-xs font-medium text-muted-foreground">Collection Progress</span>
+          <span className="text-xs font-medium">{collectionRate.toFixed(1)}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div
+            className="bg-green-500 h-3 rounded-full"
+            style={{ width: `${Math.min(collectionRate, 100)}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  )}
+</Card>
 
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Attendance Summary</h2>

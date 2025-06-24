@@ -115,31 +115,15 @@ export class NotificationService {
       record.recipient_phone = recipient;
     }
 
-    if (!navigator.onLine) {
-      // Store in IndexedDB
-      const db = await getDB();
-      const id = crypto.randomUUID();
-      const indexedDBRecord: IndexedDBNotification = {
-        ...record,
-        id,
-        sync_status: 'pending'
-      };
-      await db.put('notifications', indexedDBRecord);
+    // Always store in Supabase (online-only)
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(record)
+      .select('id')
+      .single();
 
-      // Queue for sync
-      await addToSyncQueue('notifications', id, 'create', record);
-      return id;
-    } else {
-      // Store in Supabase
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert(record)
-        .select('id')
-        .single();
-
-      if (error) throw error;
-      return data.id;
-    }
+    if (error) throw error;
+    return data.id;
   }
 
   private async updateNotificationStatus(
@@ -156,30 +140,13 @@ export class NotificationService {
       update.error_message = error;
     }
 
-    if (!navigator.onLine) {
-      // Update in IndexedDB
-      const db = await getDB();
-      const record = await db.get('notifications', id) as IndexedDBNotification;
-      if (record) {
-        const updatedRecord: IndexedDBNotification = {
-          ...record,
-          ...update,
-          sync_status: 'pending'
-        };
-        await db.put('notifications', updatedRecord);
-      }
+    // Always update in Supabase (online-only)
+    const { error: updateError } = await supabase
+      .from('notifications')
+      .update(update)
+      .eq('id', id);
 
-      // Queue for sync
-      await addToSyncQueue('notifications', id, 'update', update);
-    } else {
-      // Update in Supabase
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update(update)
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-    }
+    if (updateError) throw updateError;
   }
 
   public async sendSMS(phoneNumber: string, message: string): Promise<boolean> {

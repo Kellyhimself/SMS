@@ -181,53 +181,89 @@ export const feeService = {
   async createFee(fee: FeeCreate): Promise<Fee> {
     const db = await getDB()
     const now = new Date().toISOString()
-    
-    // Get student data first
+
     let studentName = null
+    let studentAdmissionNumber = null
     if (!navigator.onLine) {
       const student = await db.get('students', fee.student_id)
       studentName = student?.name || null
+      studentAdmissionNumber = student?.admission_number || null
+
+      const newFee: Fee = {
+        id: crypto.randomUUID(),
+        student_id: fee.student_id,
+        school_id: fee.school_id,
+        amount: fee.amount,
+        amount_paid: 0,
+        date: fee.date,
+        due_date: fee.due_date || null,
+        status: 'pending',
+        description: fee.description || null,
+        payment_method: null,
+        payment_reference: null,
+        payment_date: null,
+        receipt_url: null,
+        payment_details: null,
+        created_at: now,
+        updated_at: now,
+        sync_status: 'pending' as const,
+        fee_type: fee.fee_type || null,
+        student_admission_number: studentAdmissionNumber || fee.student_admission_number || null,
+        student_name: studentName,
+        term: fee.term || null,
+        academic_year: fee.academic_year || null
+      }
+
+      // Store in IndexedDB
+      await db.put('fees', newFee)
+      // Queue for sync
+      await syncService.queueSync('fees', 'create', newFee.id, newFee)
+      return newFee
     } else {
+      // Online: fetch student info
       const { data: student } = await supabase
         .from('students')
-        .select('name')
+        .select('name, admission_number')
         .eq('id', fee.student_id)
         .single()
       studentName = student?.name || null
-    }
+      studentAdmissionNumber = student?.admission_number || null
 
-    const newFee: Fee = {
-      id: crypto.randomUUID(),
-      student_id: fee.student_id,
-      school_id: fee.school_id,
-      amount: fee.amount,
-      amount_paid: 0,
-      date: fee.date,
-      due_date: fee.due_date || null,
-      status: 'pending',
-      description: fee.description || null,
-      payment_method: null,
-      payment_reference: null,
-      payment_date: null,
-      receipt_url: null,
-      payment_details: null,
-      created_at: now,
-      updated_at: now,
-      sync_status: 'pending' as const,
-      fee_type: fee.fee_type || null,
-      student_admission_number: fee.student_admission_number || null,
-      student_name: studentName,
-      term: fee.term || null,
-      academic_year: fee.academic_year || null
-    }
+      // Insert directly into Supabase
+      const { data: inserted, error } = await supabase
+        .from('fees')
+        .insert([{
+          student_id: fee.student_id,
+          school_id: fee.school_id,
+          amount: fee.amount,
+          amount_paid: 0,
+          date: fee.date,
+          due_date: fee.due_date || null,
+          status: 'pending',
+          description: fee.description || null,
+          payment_method: null,
+          payment_reference: null,
+          payment_date: null,
+          receipt_url: null,
+          payment_details: null,
+          created_at: now,
+          updated_at: now,
+          sync_status: 'synced',
+          fee_type: fee.fee_type || null,
+          student_admission_number: studentAdmissionNumber || fee.student_admission_number || null,
+          student_name: studentName,
+          term: fee.term || null,
+          academic_year: fee.academic_year || null
+        }])
+        .select('*')
+        .single()
 
-    // Store in IndexedDB
-      await db.put('fees', newFee)
-    
-    // Queue for sync
-    await syncService.queueSync('fees', 'create', newFee.id, newFee)
-    
-    return newFee
+      if (error) throw error
+
+      // Update IndexedDB for offline support
+      await db.put('fees', { ...inserted, sync_status: 'synced' })
+      return inserted as Fee
+    }
   },
 
   async updateFee(id: string, fee: FeeUpdate): Promise<Fee> {

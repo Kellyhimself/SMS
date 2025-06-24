@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { getDB } from '@/lib/indexeddb/client'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Tables } from '@/types/supabase'
+import { feeService } from '@/services/fee.service'
 
 type Student = Tables<'students'>
 
@@ -78,10 +79,10 @@ export default function NewFeePage() {
       console.log('Creating fees, online status:', isOnline)
 
       if (isOnline) {
-        // Online mode: Use mutation
-        console.log('Online mode: Using mutation')
+        // Online mode: Use service directly for each student
+        console.log('Online mode: Using feeService.createFee for each student')
         const promises = Array.from(selectedStudents).map(studentId =>
-          createFee.mutateAsync({
+          feeService.createFee({
             student_id: studentId,
             school_id: school.id,
             amount: feeAmount,
@@ -90,7 +91,6 @@ export default function NewFeePage() {
             date: new Date().toISOString()
           })
         )
-
         await Promise.all(promises)
         toast.success('Fees created successfully')
       } else {

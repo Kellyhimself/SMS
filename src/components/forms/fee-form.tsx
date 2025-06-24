@@ -190,7 +190,14 @@ export function FeeForm({ fee, onSuccess }: FeeFormProps) {
             ) : (
               <Select
                 value={formData.student_id}
-                onValueChange={(value) => setFormData({ ...formData, student_id: value })}
+                onValueChange={(value) => {
+                  const selectedStudent = students.find(s => s.id === value)
+                  setFormData({
+                    ...formData,
+                    student_id: value,
+                    student_admission_number: selectedStudent?.admission_number || null,
+                  })
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a student" />
