@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { User, Menu, Bell, Settings } from 'lucide-react'
+import { User as UserIcon, Menu, Bell, Settings } from 'lucide-react'
 import type { User } from '@/types/auth'
 import { School } from '@/types/school'
 import { useState } from 'react'
@@ -27,16 +27,15 @@ export function Header({ user, school }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-background via-background/95 to-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        {/* Left Section with Sidebar */}
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center">
-          <Sidebar />
-        </div>
-
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center justify-end space-x-6">
-          {/* School Name */}
-          <div className="flex items-center">
+          {/* Mobile Sidebar Trigger */}
+          <div className="md:hidden">
+            <Sidebar />
+          </div>
+          
+          {/* Desktop School Name */}
+          <div className="hidden md:flex items-center">
             <a 
               className="group relative flex items-center space-x-2" 
               href="/"
@@ -47,7 +46,10 @@ export function Header({ user, school }: HeaderProps) {
               </span>
             </a>
           </div>
+        </div>
 
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center justify-end space-x-6">
           {/* Notification Bell */}
           <Button 
             variant="ghost" 
@@ -69,7 +71,7 @@ export function Header({ user, school }: HeaderProps) {
                   variant="ghost" 
                   className="relative h-9 w-9 rounded-full border border-primary/10 hover:border-primary/20 transition-all duration-300"
                 >
-                  <User className="h-4 w-4" />
+                  <UserIcon className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
@@ -125,7 +127,7 @@ export function Header({ user, school }: HeaderProps) {
               <div className="flex flex-col space-y-6 mt-6">
                 <div className="flex items-center space-x-3 p-2 rounded-lg bg-primary/5">
                   <div className="h-10 w-10 rounded-full border border-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5" />
+                    <UserIcon className="h-5 w-5" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">{user.email}</span>

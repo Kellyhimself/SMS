@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStudents } from '@/hooks/use-students'
 import { useCreateFee, createFeeOffline } from '@/hooks/use-fees'
+import { useFeeTypes } from '@/hooks/use-fee-types'
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,10 +23,12 @@ type Student = Tables<'students'>
 export default function NewFeePage() {
   const router = useRouter()
   const { school } = useAuth()
+  const { data: feeTypes, isLoading: isLoadingFeeTypes } = useFeeTypes()
   const [selectedClass, setSelectedClass] = useState<string>('all')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
+  const [selectedFeeType, setSelectedFeeType] = useState<string>('none')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
 
@@ -87,6 +90,7 @@ export default function NewFeePage() {
             school_id: school.id,
             amount: feeAmount,
             description: description || undefined,
+            fee_type: selectedFeeType === 'none' ? undefined : selectedFeeType,
             due_date: new Date().toISOString(),
             date: new Date().toISOString()
           })
@@ -102,6 +106,7 @@ export default function NewFeePage() {
             school_id: school.id,
             amount: feeAmount,
             description: description || undefined,
+            fee_type: selectedFeeType === 'none' ? undefined : selectedFeeType,
             due_date: new Date().toISOString(),
             date: new Date().toISOString()
           })
@@ -152,7 +157,7 @@ export default function NewFeePage() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Fee Details */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="amount">Amount (KES)</Label>
                     <Input
@@ -163,6 +168,28 @@ export default function NewFeePage() {
                       placeholder="Enter fee amount"
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fee-type">Fee Type</Label>
+                    {isLoadingFeeTypes ? (
+                      <div className="text-sm text-muted-foreground">Loading fee types...</div>
+                    ) : !feeTypes || feeTypes.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">No fee types found</div>
+                    ) : (
+                      <Select value={selectedFeeType} onValueChange={setSelectedFeeType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select fee type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No fee type</SelectItem>
+                          {feeTypes.map((feeType) => (
+                            <SelectItem key={feeType.id} value={feeType.name}>
+                              {feeType.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description (Optional)</Label>

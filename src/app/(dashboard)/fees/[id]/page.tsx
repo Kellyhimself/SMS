@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { use } from 'react'
 import { useFee, useProcessPayment } from '@/hooks/use-fees'
+import { useInstallmentPlans } from '@/hooks/use-installment-plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -11,13 +12,19 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Calendar, DollarSign } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { InstallmentPlanForm } from '@/components/installment-plan-form'
+import { formatCurrency } from '@/lib/utils'
+import { format } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function FeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const { data: fee, isLoading } = useFee(resolvedParams.id)
+  const { data: installmentPlans, isLoading: isLoadingPlans } = useInstallmentPlans(resolvedParams.id)
   const { mutate: processPayment } = useProcessPayment()
+  const queryClient = useQueryClient()
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [receiptBlob, setReceiptBlob] = useState<Blob | null>(null)
@@ -80,6 +87,9 @@ export default function FeeDetailPage({ params }: { params: Promise<{ id: string
   if (user?.role !== 'admin' && fee.school_id !== school?.id) {
     return <div>You don&apos;t have permission to view this fee</div>
   }
+
+  const pendingAmount = fee.amount - (fee.amount_paid || 0)
+  const isFullyPaid = pendingAmount <= 0
 
   const handlePayment = async (amount: number) => {
     console.log('Starting payment process...')
@@ -242,7 +252,15 @@ export default function FeeDetailPage({ params }: { params: Promise<{ id: string
                 </p>
               </div>
             )}
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2">
+              <InstallmentPlanForm 
+                feeId={resolvedParams.id} 
+                totalAmount={fee.amount - (fee.amount_paid || 0)}
+                onSuccess={() => {
+                  // Refresh installment plans
+                  queryClient.invalidateQueries({ queryKey: ['installment-plans', resolvedParams.id] })
+                }}
+              />
               <Button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={!isOnline && paymentMethod !== 'cash'}
@@ -253,6 +271,52 @@ export default function FeeDetailPage({ params }: { params: Promise<{ id: string
           </div>
         </CardContent>
       </Card>
+
+      {/* Installment Plans Section */}
+      {!isFullyPaid && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Installment Plans
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingPlans ? (
+              <div className="text-center py-4">Loading installment plans...</div>
+            ) : !installmentPlans || installmentPlans.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                No installment plans found for this fee.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {installmentPlans.map((plan) => (
+                  <div key={plan.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-medium">Installment Plan</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {plan.installment_count} installments of {formatCurrency(plan.installment_amount)} each
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{formatCurrency(plan.total_amount)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(plan.start_date), 'MMM dd, yyyy')} - {format(new Date(plan.end_date), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Start Date: {format(new Date(plan.start_date), 'MMM dd, yyyy')}</span>
+                      <span>End Date: {format(new Date(plan.end_date), 'MMM dd, yyyy')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-[500px]">

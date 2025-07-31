@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, School, Users, Receipt, BookOpen, Bell, Building2, Pill, Leaf } from 'lucide-react'
+import { ArrowRight, School, Users, Receipt, BookOpen, Bell, Building2, Pill, Leaf, Phone, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function LandingPage() {
@@ -18,15 +18,104 @@ export default function LandingPage() {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link href="/login">
                 <Button size="lg" className="bg-[#1E88E5] hover:bg-[#1976D2]">
-                  Get Started
+                  School Login
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="#features">
-                <Button variant="outline" size="lg">
-                  Learn More
+              <Link href="/parent-login">
+                <Button variant="outline" size="lg" className="border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white">
+                  <Phone className="mr-2 h-4 w-4" />
+                  Parent Portal
                 </Button>
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Parent Portal Section */}
+      <section className="bg-gradient-to-r from-blue-50 to-indigo-50 py-12 sm-mobile:py-16 md-mobile:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm-mobile:px-6 md-mobile:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 sm-mobile:text-3xl md-mobile:text-4xl">
+              Parent Portal Access
+            </h2>
+            <p className="mt-4 text-lg text-gray-600">
+              Stay connected with your child's education
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 rounded-full bg-blue-100 p-2">
+                  <Phone className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">SMS Authentication</h3>
+                  <p className="text-gray-600">Secure login with your registered phone number</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 rounded-full bg-green-100 p-2">
+                  <Shield className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Secure Access</h3>
+                  <p className="text-gray-600">View your child's progress, fees, and attendance</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 rounded-full bg-purple-100 p-2">
+                  <Bell className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Real-time Updates</h3>
+                  <p className="text-gray-600">Receive notifications about important school events</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Access</h3>
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Access your child's information anytime, anywhere with our secure parent portal.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">View attendance records</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Check fee status and payments</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Download report cards</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Receive school communications</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Link href="/parent-login">
+                    <Button className="w-full bg-[#1E88E5] hover:bg-[#1976D2]">
+                      <Phone className="mr-2 h-4 w-4" />
+                      Access Parent Portal
+                    </Button>
+                  </Link>
+                  <Link href="/parent-portal">
+                    <Button variant="outline" className="w-full">
+                      Learn More
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { Toaster } from 'sonner'
 import { Providers } from './providers'
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import Script from 'next/script'
@@ -12,8 +12,6 @@ export const metadata: Metadata = {
   title: 'School Management System',
   description: 'A comprehensive school management system for Kenyan private schools',
   manifest: '/manifest.json',
-  themeColor: '#000000',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -31,6 +29,13 @@ export const metadata: Metadata = {
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     ],
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#000000',
 }
 
 export default function RootLayout({

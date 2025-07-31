@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { Fee, FeeCreate, FeeUpdate, PaymentDetails } from '@/types/fee'
+import type { Fee, FeeCreate, FeeUpdate, PaymentDetails, FeeFilters, FeeAnalytics } from '@/types/fee'
 import { getDB } from '@/lib/indexeddb/client'
 import type { Database } from '@/types/supabase'
 import { syncService } from '@/lib/sync/sync-service'
@@ -42,24 +42,64 @@ const transformFee = (fee: FeeWithStudent): Fee => {
 }
 
 export const feeService = {
-  async getFees(schoolId: string): Promise<Fee[]> {
+  async getFees(schoolId: string, filters?: FeeFilters): Promise<Fee[]> {
     console.log('🔍 Fetching fees for school:', schoolId)
     console.log('📡 Online status:', navigator.onLine)
     
     const db = await getDB()
     
     // Always get from IndexedDB first
-    const fees = await db.getAllFromIndex('fees', 'by-school', schoolId)
+    let fees = await db.getAllFromIndex('fees', 'by-school', schoolId)
     console.log('💾 Fees from IndexedDB:', fees.length)
+    
+    // Apply filters to offline data
+    if (filters?.studentId) {
+      fees = fees.filter(f => f.student_id === filters.studentId)
+    }
+    if (filters?.status) {
+      fees = fees.filter(f => f.status === filters.status)
+    }
+    if (filters?.feeType) {
+      fees = fees.filter(f => f.fee_type === filters.feeType)
+    }
+    if (filters?.startDate) {
+      fees = fees.filter(f => new Date(f.date) >= filters.startDate!)
+    }
+    if (filters?.endDate) {
+      fees = fees.filter(f => new Date(f.date) <= filters.endDate!)
+    }
     
     // If online, fetch from Supabase and update IndexedDB
     if (navigator.onLine) {
       try {
         console.log('🌐 Fetching from Supabase...')
-        const { data: supabaseFees, error } = await supabase
+        let query = supabase
           .from('fees')
           .select('*')
           .eq('school_id', schoolId)
+        
+        if (filters?.studentId) {
+          query = query.eq('student_id', filters.studentId)
+        }
+        if (filters?.status) {
+          query = query.eq('status', filters.status)
+        }
+        if (filters?.feeType) {
+          query = query.eq('fee_type', filters.feeType)
+        }
+        if (filters?.startDate) {
+          query = query.gte('date', filters.startDate.toISOString().split('T')[0])
+        }
+        if (filters?.endDate) {
+          query = query.lte('date', filters.endDate.toISOString().split('T')[0])
+        }
+        if (filters?.sortBy) {
+          query = query.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' })
+        } else {
+          query = query.order('created_at', { ascending: false })
+        }
+        
+        const { data: supabaseFees, error } = await query
         
         if (error) throw error
         
@@ -336,5 +376,55 @@ export const feeService = {
     await syncService.queueSync('fees', 'update', feeId, updatedFee)
     
     return updatedFee
+  },
+
+  async getFeeAnalytics(schoolId: string, filters?: FeeFilters): Promise<FeeAnalytics> {
+    const fees = await this.getFees(schoolId, filters)
+    
+    const totalFees = fees.length
+    const totalCollected = fees.reduce((sum, fee) => sum + (fee.amount_paid || 0), 0)
+    const totalPending = fees.reduce((sum, fee) => {
+      const pending = fee.amount - (fee.amount_paid || 0)
+      return pending > 0 ? sum + pending : sum
+    }, 0)
+    const collectionRate = totalFees > 0 ? (totalCollected / (totalCollected + totalPending)) * 100 : 0
+    
+    // Group by fee type
+    const feesByType = fees.reduce((acc, fee) => {
+      const type = fee.fee_type || 'Uncategorized'
+      acc[type] = (acc[type] || 0) + fee.amount
+      return acc
+    }, {} as Record<string, number>)
+    
+    // Group by month
+    const feesByMonth = fees.reduce((acc, fee) => {
+      const month = new Date(fee.date).toISOString().slice(0, 7) // YYYY-MM
+      acc[month] = (acc[month] || 0) + fee.amount
+      return acc
+    }, {} as Record<string, number>)
+    
+    // Calculate overdue fees
+    const now = new Date()
+    const overdueFees = fees.filter(fee => {
+      if (fee.status === 'paid') return false
+      if (!fee.due_date) return false
+      return new Date(fee.due_date) < now
+    })
+    
+    const overdueAmount = overdueFees.reduce((sum, fee) => {
+      const pending = fee.amount - (fee.amount_paid || 0)
+      return pending > 0 ? sum + pending : sum
+    }, 0)
+    
+    return {
+      total_fees: totalFees,
+      total_collected: totalCollected,
+      total_pending: totalPending,
+      collection_rate: collectionRate,
+      fees_by_type: feesByType,
+      fees_by_month: feesByMonth,
+      overdue_fees: overdueFees.length,
+      overdue_amount: overdueAmount
+    }
   }
 } 

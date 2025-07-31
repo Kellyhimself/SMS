@@ -1,6 +1,7 @@
 import { useAuth } from '@/hooks/use-auth'
 import { useStudents } from '@/hooks/use-students'
 import { useCreateFee, useUpdateFee, createFeeOffline } from '@/hooks/use-fees'
+import { useFeeTypes } from '@/hooks/use-fee-types'
 import { useQueryClient } from '@tanstack/react-query'
 import { getDB } from '@/lib/indexeddb/client'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,7 @@ export function FeeForm({ fee, onSuccess }: FeeFormProps) {
     search: '',
     class: ''
   })
+  const { data: feeTypes, isLoading: isLoadingFeeTypes } = useFeeTypes()
   const createFee = useCreateFee()
   const updateFee = useUpdateFee()
   const queryClient = useQueryClient()
@@ -250,11 +252,28 @@ export function FeeForm({ fee, onSuccess }: FeeFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="fee_type">Fee Type</Label>
-            <Input
-              id="fee_type"
-              value={formData.fee_type || ''}
-              onChange={(e) => setFormData({ ...formData, fee_type: e.target.value })}
-            />
+            {isLoadingFeeTypes ? (
+              <div className="text-base text-muted-foreground">Loading fee types...</div>
+            ) : !feeTypes || feeTypes.length === 0 ? (
+              <div className="text-base text-muted-foreground">No fee types found. Create fee types in settings.</div>
+            ) : (
+              <Select
+                value={formData.fee_type || ''}
+                onValueChange={(value) => setFormData({ ...formData, fee_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select fee type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No fee type</SelectItem>
+                  {feeTypes.map((feeType) => (
+                    <SelectItem key={feeType.id} value={feeType.name}>
+                      {feeType.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">

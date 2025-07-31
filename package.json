@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:sms": "node scripts/test-sms.js",
+    "test:sms:free": "node scripts/test-sms-sandbox.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

@@ -6,6 +6,12 @@ import Link from 'next/link';
 
 const settingsSections = [
   {
+    title: 'Fee Types',
+    description: 'Manage fee categories and types for your school',
+    icon: CreditCard,
+    href: '/settings/fee-types'
+  },
+  {
     title: 'Bank API Settings',
     description: 'Configure bank integration settings for payment processing',
     icon: CreditCard,
