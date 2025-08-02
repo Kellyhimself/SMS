@@ -14,7 +14,9 @@ import { useAuth } from '@/hooks/use-auth'
 import type { FeeTypeCreate, FeeTypeUpdate } from '@/types/fee'
 
 export default function FeeTypesPage() {
-  const { school } = useAuth()
+  const { school, user } = useAuth()
+  const isAuthorized = user?.role === 'admin';
+  
   const { data: feeTypes, isLoading, error } = useFeeTypes()
   const createFeeType = useCreateFeeType()
   const updateFeeType = useUpdateFeeType()
@@ -90,6 +92,17 @@ export default function FeeTypesPage() {
     setIsDialogOpen(false)
     setEditingFeeType(null)
     setFormData({ name: '', description: '' })
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access fee types settings.</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

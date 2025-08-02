@@ -86,6 +86,50 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_webhook_logs: {
         Row: {
           bank_type: string
@@ -495,7 +539,7 @@ export type Database = {
       }
       otp_codes: {
         Row: {
-          created_at: string | null
+          created_at: string
           expires_at: string
           id: string
           otp: string
@@ -503,7 +547,7 @@ export type Database = {
           phone: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           expires_at: string
           id?: string
           otp: string
@@ -511,7 +555,7 @@ export type Database = {
           phone: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           expires_at?: string
           id?: string
           otp?: string
@@ -573,6 +617,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          parent_id: string | null
+          phone: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id: string
+          parent_id?: string | null
+          phone: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          parent_id?: string | null
+          phone?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_sessions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parent_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_sessions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parent_dashboard"
+            referencedColumns: ["parent_id"]
           },
         ]
       }
@@ -813,6 +899,9 @@ export type Database = {
           phone: string | null
           subscription_plan: string
           updated_at: string
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
@@ -825,6 +914,9 @@ export type Database = {
           phone?: string | null
           subscription_plan: string
           updated_at?: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
@@ -837,8 +929,19 @@ export type Database = {
           phone?: string | null
           subscription_plan?: string
           updated_at?: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "schools_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
@@ -942,16 +1045,16 @@ export type Database = {
           id: string
           name: string
           role: string
-          school_id: string
+          school_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
           id: string
-          name: string
-          role: string
-          school_id: string
+          name?: string
+          role?: string
+          school_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -960,7 +1063,7 @@ export type Database = {
           id?: string
           name?: string
           role?: string
-          school_id?: string
+          school_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1034,10 +1137,6 @@ export type Database = {
       }
     }
     Functions: {
-      cleanup_expired_otps: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       get_or_create_parent_account: {
         Args: {
           p_phone: string

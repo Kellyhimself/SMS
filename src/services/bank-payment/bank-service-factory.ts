@@ -1,10 +1,11 @@
-import { BankAPIConfig } from '@/types/bank-payment';
-import { BaseBankService } from './base-bank-service';
-import { KCBService } from './kcb-service';
+import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/config'
+import type { BankAPIConfig } from '@/types/bank-payment'
+import { KCBService } from './kcb-service'
+import { BaseBankService } from './base-bank-service'
 import { EquityService } from './equity-service';
 import { CooperativeService } from './cooperative-service';
 import { IMService } from './im-service';
-import { createClient } from '@supabase/supabase-js';
 
 export class BankServiceFactory {
   static createBankService(config: BankAPIConfig): BaseBankService {
@@ -26,10 +27,7 @@ export class BankServiceFactory {
     console.log('Getting bank service for school:', schoolId);
     
     // Create Supabase client only when needed in server-side method
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createServerSupabaseClient()
     
     const { data: school, error } = await supabase
       .from('schools')

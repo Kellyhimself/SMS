@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Info } from 'lucide-react'
 import type { RegisterCredentials } from '@/types/auth'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['admin', 'teacher', 'parent']),
+  role: z.literal('admin'), // Only admin allowed for new school registration
   school: z.object({
     name: z.string().min(2, 'School name must be at least 2 characters'),
     email: z.string().email('Invalid school email address'),
@@ -35,7 +36,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     name: '',
     email: '',
     password: '',
-    role: 'admin',
+    role: 'admin', // Fixed to admin only
     school: {
       name: '',
       email: '',
@@ -57,10 +58,17 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Create Account</CardTitle>
-        <CardDescription>Enter your details to create your account</CardDescription>
+        <CardTitle className="text-2xl">Create School Account</CardTitle>
+        <CardDescription>Register as a school administrator to set up your school</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} className="space-y-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            This registration is for school administrators only. Teachers, parents, and accountants will be invited by the school administrator after registration.
+          </AlertDescription>
+        </Alert>
+
         <div className="space-y-4">
           <div>
             <Label htmlFor="name">Full Name</Label>
@@ -92,23 +100,6 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
-          </div>
-
-          <div>
-            <Label htmlFor="role">Role</Label>
-            <Select
-              value={formData.role}
-              onValueChange={(value) => setFormData({ ...formData, role: value as 'admin' | 'teacher' | 'parent' })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="teacher">Teacher</SelectItem>
-                <SelectItem value="parent">Parent</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -157,28 +148,25 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
 
           <div>
             <Label htmlFor="subscriptionPlan">Subscription Plan</Label>
-            <Select
+            <select
+              id="subscriptionPlan"
               value={formData.school.subscription_plan}
-              onValueChange={(value) =>
+              onChange={(e) =>
                 setFormData({
                   ...formData,
-                  school: { ...formData.school, subscription_plan: value as 'core' | 'premium' },
+                  school: { ...formData.school, subscription_plan: e.target.value as 'core' | 'premium' },
                 })
               }
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="core">Core</SelectItem>
-                <SelectItem value="premium">Premium</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="core">Core</option>
+              <option value="premium">Premium</option>
+            </select>
           </div>
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Creating Account...' : 'Create Account'}
+          {isLoading ? 'Creating School Account...' : 'Create School Account'}
         </Button>
       </form>
     </Card>

@@ -11,7 +11,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function BankSettingsPage() {
-  const { school, isLoading: isSchoolLoading } = useAuth();
+  const { school, isLoading: isSchoolLoading, user } = useAuth();
+  const isAuthorized = user?.role === 'admin';
   const [selectedBank, setSelectedBank] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState({
@@ -21,6 +22,17 @@ export default function BankSettingsPage() {
     webhook_url: '',
     is_live: false
   });
+  
+  if (!isAuthorized) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access bank settings.</p>
+        </div>
+      </div>
+    );
+  }
   
   if (isSchoolLoading) {
     return (

@@ -1,5 +1,5 @@
 import { BankAPIConfig, BankPaymentRequest, BankPaymentResponse, BankWebhookData } from '@/types/bank-payment';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase/config'
 
 export abstract class BaseBankService {
   protected config: BankAPIConfig;
@@ -10,10 +10,7 @@ export abstract class BaseBankService {
     this.config = config;
     this.isTestMode = !config.is_live;
     // Create a direct Supabase client with service role for server-side operations
-    this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    this.supabase = createServerSupabaseClient()
   }
 
   abstract initiatePayment(request: BankPaymentRequest): Promise<BankPaymentResponse>;

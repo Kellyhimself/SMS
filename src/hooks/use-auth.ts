@@ -32,7 +32,7 @@ export function useAuth(): AuthContext {
                 user: {
                   id: authState.user_id,
                   email: authState.email,
-                  role: authState.role as 'admin' | 'teacher' | 'parent',
+                  role: authState.role as 'admin' | 'teacher' | 'parent' | 'accountant',
                   school_id: authState.school_id
                 }
               }
@@ -57,7 +57,7 @@ export function useAuth(): AuthContext {
             user: {
               id: authState.user_id,
               email: authState.email,
-              role: authState.role as 'admin' | 'teacher' | 'parent',
+              role: authState.role as 'admin' | 'teacher' | 'parent' | 'accountant',
               school_id: authState.school_id,
               name: authState.name,
               createdAt: new Date(authState.created_at),

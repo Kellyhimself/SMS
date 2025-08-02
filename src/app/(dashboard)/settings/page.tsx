@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, School, Bell, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 const settingsSections = [
   {
@@ -38,6 +39,20 @@ const settingsSections = [
 ];
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const isAuthorized = user?.role === 'admin';
+
+  if (!isAuthorized) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access settings.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>

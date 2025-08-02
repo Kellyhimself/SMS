@@ -7,6 +7,7 @@ import { Menu, X, Home, Users, DollarSign, BookOpen, Bell, Settings, Copyright, 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 
 const mainNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, description: 'Overview and analytics' },
@@ -21,6 +22,18 @@ const mainNavigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  const isAccountant = user?.role === 'accountant'
+  const canAccessFinance = isAdmin || isAccountant
+
+  // Filter navigation based on user role
+  const filteredNavigation = mainNavigation.filter(item => {
+    if (item.href === '/finance') {
+      return canAccessFinance
+    }
+    return true
+  })
 
   return (
     <>
@@ -67,7 +80,7 @@ export function Sidebar() {
               
               {/* Main Navigation */}
               <nav className="flex-1 space-y-2 p-4">
-                {mainNavigation.map((item) => {
+                {filteredNavigation.map((item) => {
                   const isActive = item.href === '/'
                     ? pathname === '/'
                     : pathname.startsWith(item.href)
@@ -102,26 +115,28 @@ export function Sidebar() {
 
               {/* Bottom Section */}
               <div className="border-t p-4 space-y-3">
-                {/* Settings */}
-                <Link href="/settings">
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      'w-full justify-start transition-all duration-300 ease-in-out group',
-                      'hover:scale-[1.02] hover:text-primary hover:bg-primary/5',
-                      'border border-border/50 rounded-xl',
-                      'text-base font-medium',
-                      'py-4 px-4',
-                      'relative overflow-hidden',
-                      pathname.startsWith('/settings') && 'bg-primary/10 text-primary border-primary/20 shadow-lg',
-                    )}
-                    onClick={() => setOpen(false)}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/0 transition-all duration-300 group-hover:from-primary/5 group-hover:to-primary/10" />
-                    <Settings className="mr-3 h-5 w-5 transition-transform duration-300 group-hover:scale-110 relative z-10" />
-                    <span className="relative z-10">Settings</span>
-                  </Button>
-                </Link>
+                {/* Settings - Only show for admin */}
+                {isAdmin && (
+                  <Link href="/settings">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        'w-full justify-start transition-all duration-300 ease-in-out group',
+                        'hover:scale-[1.02] hover:text-primary hover:bg-primary/5',
+                        'border border-border/50 rounded-xl',
+                        'text-base font-medium',
+                        'py-4 px-4',
+                        'relative overflow-hidden',
+                        pathname.startsWith('/settings') && 'bg-primary/10 text-primary border-primary/20 shadow-lg',
+                      )}
+                      onClick={() => setOpen(false)}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/0 transition-all duration-300 group-hover:from-primary/5 group-hover:to-primary/10" />
+                      <Settings className="mr-3 h-5 w-5 transition-transform duration-300 group-hover:scale-110 relative z-10" />
+                      <span className="relative z-10">Settings</span>
+                    </Button>
+                  </Link>
+                )}
 
                 {/* Copyright */}
                 <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-3">
@@ -149,7 +164,7 @@ export function Sidebar() {
           
           {/* Main Navigation */}
           <nav className="flex-1 space-y-2 p-4">
-            {mainNavigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = item.href === '/'
                 ? pathname === '/'
                 : pathname.startsWith(item.href)
@@ -183,25 +198,27 @@ export function Sidebar() {
 
           {/* Bottom Section */}
           <div className="border-t p-4 space-y-3">
-            {/* Settings */}
-            <Link href="/settings">
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full justify-start transition-all duration-300 ease-in-out group',
-                  'hover:scale-[1.02] hover:text-primary hover:bg-primary/5',
-                  'border border-border/50 rounded-xl',
-                  'text-base font-medium',
-                  'py-4 px-4',
-                  'relative overflow-hidden',
-                  pathname.startsWith('/settings') && 'bg-primary/10 text-primary border-primary/20 shadow-lg',
-                )}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/0 transition-all duration-300 group-hover:from-primary/5 group-hover:to-primary/10" />
-                <Settings className="mr-3 h-5 w-5 transition-transform duration-300 group-hover:scale-110 relative z-10" />
-                <span className="relative z-10">Settings</span>
-              </Button>
-            </Link>
+            {/* Settings - Only show for admin */}
+            {isAdmin && (
+              <Link href="/settings">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    'w-full justify-start transition-all duration-300 ease-in-out group',
+                    'hover:scale-[1.02] hover:text-primary hover:bg-primary/5',
+                    'border border-border/50 rounded-xl',
+                    'text-base font-medium',
+                    'py-4 px-4',
+                    'relative overflow-hidden',
+                    pathname.startsWith('/settings') && 'bg-primary/10 text-primary border-primary/20 shadow-lg',
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/0 transition-all duration-300 group-hover:from-primary/5 group-hover:to-primary/10" />
+                  <Settings className="mr-3 h-5 w-5 transition-transform duration-300 group-hover:scale-110 relative z-10" />
+                  <span className="relative z-10">Settings</span>
+                </Button>
+              </Link>
+            )}
 
             {/* Copyright */}
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-3">

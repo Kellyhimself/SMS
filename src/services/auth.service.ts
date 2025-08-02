@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/config'
 import { schoolService } from './school.service'
 import type { AuthResponse, LoginCredentials, RegisterCredentials, School, User } from '@/types/auth'
 import { getDB } from '@/lib/indexeddb/client'
@@ -62,6 +63,7 @@ export const authService = {
             name: school.name,
             email: school.email,
             subscription_plan: school.subscription_plan,
+            verification_status: school.verification_status,
             created_at: school.createdAt ? new Date(school.createdAt).toISOString() : now,
             updated_at: school.updatedAt ? new Date(school.updatedAt).toISOString() : now,
           }
@@ -121,7 +123,7 @@ export const authService = {
         id: authState.user_id,
         email: authState.email,
         name: authState.name,
-        role: authState.role as 'admin' | 'teacher' | 'parent',
+        role: authState.role as 'admin' | 'teacher' | 'parent' | 'accountant',
         school_id: authState.school_id,
         createdAt: new Date(authState.created_at),
         updatedAt: new Date(authState.updated_at)
@@ -131,6 +133,7 @@ export const authService = {
         name: authState.school.name,
         email: authState.school.email,
         subscription_plan: authState.school.subscription_plan as 'core' | 'premium',
+        verification_status: authState.school.verification_status as 'pending' | 'verified' | 'rejected',
         createdAt: new Date(authState.school.created_at),
         updatedAt: new Date(authState.school.updated_at),
       },
@@ -142,86 +145,62 @@ export const authService = {
   },
 
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    // First create the user account
-    const { data, error } = await supabase.auth.signUp({
-      email: credentials.email,
-      password: credentials.password,
+    // Use the API route for registration to handle server-side operations
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
     })
 
-    if (error) throw error
-
-    if (!data.session) {
-      throw new Error('No session created')
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Registration failed')
     }
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) throw new Error('Failed to get authenticated user')
-
-    // Then create the school
-    const school = await schoolService.create(credentials.school)
-
-    // Finally create the user profile with school association
-    const { data: userData, error: dbError } = await supabase
-      .from('users')
-      .insert({
-        id: user.id,
-        email: credentials.email,
-        name: credentials.name,
-        role: credentials.role,
-        school_id: school.id,
-      })
-      .select()
-      .single()
-
-    if (dbError) throw dbError
+    const data = await response.json()
 
     // Store auth state in IndexedDB
     const now = new Date().toISOString()
     const db = await getDB()
     await db.put('auth_state', {
       id: 'current',
-      user_id: userData.id,
-      school_id: userData.school_id,
-      email: userData.email,
-      name: userData.name,
-      role: userData.role,
+      user_id: data.user.id,
+      school_id: data.user.school_id,
+      email: data.user.email,
+      name: data.user.name,
+      role: data.user.role,
       created_at: now,
       updated_at: now,
       last_sync_at: now,
       session: {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
-        expires_at: data.session.expires_at || Date.now() + 3600 * 1000,
+        expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours from now
       },
       school: {
-        id: school.id,
-        name: school.name,
-        email: school.email,
-        subscription_plan: school.subscription_plan,
-        created_at: school.createdAt ? new Date(school.createdAt).toISOString() : now,
-        updated_at: school.updatedAt ? new Date(school.updatedAt).toISOString() : now,
+        id: data.school.id,
+        name: data.school.name,
+        email: data.school.email,
+        subscription_plan: data.school.subscription_plan,
+        verification_status: data.school.verification_status,
+        created_at: now,
+        updated_at: now
       }
     })
 
     // Store hashed credentials for offline use
     const passwordHash = await bcrypt.hash(credentials.password, 10)
     await db.put('offline_credentials', {
-      id: userData.id,
+      id: data.user.id,
       email: credentials.email,
       password_hash: passwordHash,
       created_at: now,
       updated_at: now
     })
 
-    return {
-      user: userData as User,
-      school,
-      session: {
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      },
-    }
+    return data
   },
 
   async getCurrentUser(): Promise<{ user: User; school: School } | null> {
@@ -234,7 +213,7 @@ export const authService = {
             id: authState.user_id,
             email: authState.email,
             name: authState.name,
-            role: authState.role as 'admin' | 'teacher' | 'parent',
+            role: authState.role as 'admin' | 'teacher' | 'parent' | 'accountant',
             school_id: authState.school_id,
             createdAt: new Date(authState.created_at),
             updatedAt: new Date(authState.updated_at)
@@ -244,6 +223,7 @@ export const authService = {
             name: authState.school.name,
             email: authState.school.email,
             subscription_plan: authState.school.subscription_plan as 'core' | 'premium',
+            verification_status: authState.school.verification_status as 'pending' | 'verified' | 'rejected',
             createdAt: new Date(authState.school.created_at),
             updatedAt: new Date(authState.school.updated_at),
           }
@@ -288,6 +268,7 @@ export const authService = {
         name: school.name,
         email: school.email,
         subscription_plan: school.subscription_plan,
+        verification_status: school.verification_status,
         created_at: school.createdAt ? new Date(school.createdAt).toISOString() : now,
         updated_at: school.updatedAt ? new Date(school.updatedAt).toISOString() : now,
       }
@@ -358,6 +339,7 @@ export const authService = {
         name: school.name,
         email: school.email,
         subscription_plan: school.subscription_plan,
+        verification_status: school.verification_status,
         created_at: school.createdAt ? new Date(school.createdAt).toISOString() : now,
         updated_at: school.updatedAt ? new Date(school.updatedAt).toISOString() : now,
       }

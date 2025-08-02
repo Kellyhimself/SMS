@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { BankAPIConfig } from '@/types/bank-payment';
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase/config'
+import type { BankAPIConfig } from '@/types/bank-payment'
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,10 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Use service role key for server-side operations
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createServerSupabaseClient()
 
     // First check if the school exists and get current payment settings
     const { data: school, error: schoolError } = await supabase
@@ -58,7 +55,8 @@ export async function POST(req: NextRequest) {
       api_secret,
       api_endpoint,
       webhook_url,
-      is_live: is_live ?? false
+      is_live: is_live ?? false,
+      school_id
     };
     console.log('Updating bank settings:', bankSettings);
 

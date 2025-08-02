@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, CreditCard, Calendar, TrendingUp, Receipt, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 const financeSections = [
   {
@@ -50,6 +51,20 @@ const financeSections = [
 ];
 
 export default function FinancePage() {
+  const { user } = useAuth();
+  const isAuthorized = user?.role === 'admin' || user?.role === 'accountant';
+
+  if (!isAuthorized) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access finance management.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">Finance Management</h1>

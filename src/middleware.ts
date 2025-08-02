@@ -32,8 +32,16 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Get authenticated user
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  // Get authenticated user with timeout handling
+  let user, userError
+  try {
+    const authResult = await supabase.auth.getUser()
+    user = authResult.data.user
+    userError = authResult.error
+  } catch (error) {
+    console.error('Middleware auth timeout/error:', error)
+    userError = error as Error
+  }
 
   // Auth routes handling
   if (req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register')) {
@@ -55,12 +63,20 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-      // Role-based access control
-      const { data: userData, error: dbError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+      // Role-based access control with timeout handling
+      let userData, dbError
+      try {
+        const userResult = await supabase
+          .from('users')
+          .select('role, school_id')
+          .eq('id', user.id)
+          .single()
+        userData = userResult.data
+        dbError = userResult.error
+      } catch (error) {
+        console.error('Middleware database query timeout/error:', error)
+        dbError = error as Error
+      }
 
       if (dbError || !userData) {
         // If user not found in database, redirect to login
@@ -68,8 +84,50 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(redirectUrl)
       }
 
+      // Check school verification status for non-admin users
+      if (userData.role !== 'admin') {
+        let schoolData, schoolError
+        try {
+          const schoolResult = await supabase
+            .from('schools')
+            .select('verification_status')
+            .eq('id', userData.school_id)
+            .single()
+          schoolData = schoolResult.data
+          schoolError = schoolResult.error
+        } catch (error) {
+          console.error('Middleware school query timeout/error:', error)
+          schoolError = error as Error
+        }
+
+        if (schoolError || !schoolData) {
+          // If school not found, redirect to login
+          const redirectUrl = new URL('/login', req.url)
+          return NextResponse.redirect(redirectUrl)
+        }
+
+        // Restrict access for unverified schools (except for admin)
+        if (schoolData.verification_status !== 'verified') {
+          // Redirect to verification pending page
+          const redirectUrl = new URL('/verification-pending', req.url)
+          return NextResponse.redirect(redirectUrl)
+        }
+      }
+
       // Admin-only routes
       if (req.nextUrl.pathname.startsWith('/dashboard/admin') && userData.role !== 'admin') {
+        const redirectUrl = new URL('/dashboard', req.url)
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Finance routes - only admin and accountant can access
+      if (req.nextUrl.pathname.startsWith('/finance') && !['admin', 'accountant'].includes(userData.role)) {
+        const redirectUrl = new URL('/dashboard', req.url)
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Settings routes - only admin can access
+      if (req.nextUrl.pathname.startsWith('/settings') && userData.role !== 'admin') {
         const redirectUrl = new URL('/dashboard', req.url)
         return NextResponse.redirect(redirectUrl)
       }
@@ -99,5 +157,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/register'],
+  matcher: ['/dashboard/:path*', '/finance/:path*', '/settings/:path*', '/admin/:path*', '/login', '/register'],
 } 
