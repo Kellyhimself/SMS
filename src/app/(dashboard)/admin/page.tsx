@@ -198,6 +198,26 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-500" />
+              User Management
+            </CardTitle>
+            <CardDescription>
+              Manage users and send invitations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <Badge variant="secondary">{stats.totalUsers} users</Badge>
+              <Button asChild size="sm">
+                <Link href="/admin/users">Manage</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-green-500" />
               System Security
             </CardTitle>

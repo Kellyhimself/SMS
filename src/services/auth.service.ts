@@ -288,7 +288,54 @@ export const authService = {
     // Clear auth state and offline credentials from IndexedDB
     const db = await getDB()
     await db.delete('auth_state', 'current')
-    await db.delete('offline_credentials', 'current')
+    
+    // Clear all offline credentials
+    const tx = db.transaction('offline_credentials', 'readwrite')
+    const store = tx.objectStore('offline_credentials')
+    await store.clear()
+    await tx.done
+  },
+
+  async validateSession(): Promise<boolean> {
+    if (!navigator.onLine) {
+      // When offline, we can't validate against the server
+      // Return true to allow offline access
+      return true
+    }
+
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        return false
+      }
+
+      // Check if user still exists in database
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (dbError || !userData) {
+        return false
+      }
+
+      // Check if school still exists
+      const { data: schoolData, error: schoolError } = await supabase
+        .from('schools')
+        .select('id')
+        .eq('id', userData.school_id)
+        .single()
+
+      if (schoolError || !schoolData) {
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Session validation error:', error)
+      return false
+    }
   },
 
   async syncAuthState(): Promise<void> {
@@ -344,5 +391,25 @@ export const authService = {
         updated_at: school.updatedAt ? new Date(school.updatedAt).toISOString() : now,
       }
     })
+  },
+
+  async clearAllCachedData(): Promise<void> {
+    const db = await getDB()
+    
+    // Clear all auth-related data
+    await db.delete('auth_state', 'current')
+    
+    // Clear all offline credentials
+    const tx = db.transaction('offline_credentials', 'readwrite')
+    const store = tx.objectStore('offline_credentials')
+    await store.clear()
+    await tx.done
+    
+    // Sign out from Supabase if online
+    if (navigator.onLine) {
+      await supabase.auth.signOut()
+    }
+    
+    console.log('✅ All cached authentication data cleared')
   }
 } 

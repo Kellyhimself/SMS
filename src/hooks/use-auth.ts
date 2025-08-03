@@ -41,7 +41,22 @@ export function useAuth(): AuthContext {
         }
         return { data: { session: null } }
       }
-      return supabase.auth.getSession()
+      
+      // Online: validate session and check if user/school still exists
+      const sessionData = await supabase.auth.getSession()
+      if (sessionData.data.session) {
+        // Validate session against database
+        const isValid = await authService.validateSession()
+        if (!isValid) {
+          // Session is invalid, clear it
+          await supabase.auth.signOut()
+          const db = await getDB()
+          await db.delete('auth_state', 'current')
+          return { data: { session: null } }
+        }
+      }
+      
+      return sessionData
     },
     retry: false,
   })
@@ -68,6 +83,7 @@ export function useAuth(): AuthContext {
               name: 'Offline Mode',
               email: authState.email,
               subscription_plan: 'core' as const,
+              verification_status: 'pending' as const,
               createdAt: new Date(authState.created_at),
               updatedAt: new Date(authState.updated_at)
             }

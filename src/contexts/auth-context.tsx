@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null
   school: School | null
   isLoading: boolean
+  isAuthenticated: boolean
   login: ReturnType<typeof useAuth>['login']
   register: ReturnType<typeof useAuth>['register']
   logout: ReturnType<typeof useAuth>['logout']
@@ -28,11 +29,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading])
 
-  // Handle auth state changes
+  // Handle auth state changes - exclude invitation acceptance page
   useEffect(() => {
     if (isInitialized) {
-      if (!user && !isLoading) {
-        // User is not authenticated
+      // Check if we're on pages that don't require authentication
+      const isPublicPage = typeof window !== 'undefined' && (
+        window.location.pathname.startsWith('/accept-invitation/') ||
+        window.location.pathname.startsWith('/login') ||
+        window.location.pathname.startsWith('/register') ||
+        window.location.pathname === '/'
+      )
+      
+      if (!user && !isLoading && !isPublicPage) {
+        // User is not authenticated and not on a public page
         toast.error('Please log in to continue')
       }
     }
@@ -59,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     school,
     isLoading: isLoading || !isInitialized,
+    isAuthenticated: !!user,
     login,
     register,
     logout,

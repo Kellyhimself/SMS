@@ -1,9 +1,11 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, School, Bell, Shield } from 'lucide-react';
+import { CreditCard, School, Bell, Shield, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const settingsSections = [
   {
@@ -42,6 +44,30 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const isAuthorized = user?.role === 'admin';
 
+  const clearCache = async () => {
+    try {
+      const response = await fetch('/api/auth/clear-cache', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear cache');
+      }
+
+      const data = await response.json();
+      toast.success(data.message || 'Cache cleared successfully');
+      
+      // Reload the page to force fresh authentication
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      toast.error('Failed to clear cache');
+    }
+  };
+
   if (!isAuthorized) {
     return (
       <div className="container mx-auto py-6">
@@ -75,6 +101,31 @@ export default function SettingsPage() {
             </Card>
           </Link>
         ))}
+        
+        {/* Cache Clear Section */}
+        <Card className="border-destructive/20">
+          <CardHeader>
+            <div className="flex items-center space-x-4">
+              <Trash2 className="h-6 w-6 text-destructive" />
+              <CardTitle className="text-destructive">Clear Authentication Cache</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Clear all cached authentication data. This will log you out and force a fresh login.
+              Use this if you're experiencing authentication issues after school or user deletions.
+            </p>
+            <Button
+              onClick={clearCache}
+              variant="destructive"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Cache
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

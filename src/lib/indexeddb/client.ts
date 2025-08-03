@@ -283,6 +283,7 @@ export interface SchoolDB extends DBSchema {
         name: string
         email: string
         subscription_plan: string
+        verification_status: string
         created_at: string
         updated_at: string
       }
@@ -327,7 +328,7 @@ export async function getDB() {
   }
 
   console.log('📦 Opening IndexedDB connection...')
-  db = await openDB<SchoolDB>('school-db', 5, {
+  db = await openDB<SchoolDB>('school-db', 6, {
     upgrade(database, oldVersion, newVersion) {
       console.log(`🔧 Upgrading database from version ${oldVersion} to ${newVersion}`)
       
