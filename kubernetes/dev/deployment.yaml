@@ -1,0 +1,146 @@
+# ============================================
+# DEPLOYMENT - Application Pods
+# Defines how the application runs in Kubernetes
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sms-app
+  namespace: default
+  labels:
+    app: sms-app
+    environment: dev
+    version: v1.0.0
+spec:
+  # Number of pod replicas (1 for dev to save costs)
+  replicas: 1
+
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Maximum number of pods that can be created above desired replicas
+      maxUnavailable: 0  # Ensures zero downtime during updates
+
+  # Selector to identify pods managed by this deployment
+  selector:
+    matchLabels:
+      app: sms-app
+      environment: dev
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: sms-app
+        environment: dev
+        version: v1.0.0
+    spec:
+      # Note: imagePullSecrets not needed - AKS has AcrPull role assigned via Terraform
+
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      containers:
+        - name: sms-app
+          # Image from Azure Container Registry
+          image: smscentraldev.azurecr.io/sms-app:v1.0.0
+          imagePullPolicy: IfNotPresent
+
+          # Container port
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # Environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: sms-app-config
+            - secretRef:
+                name: sms-app-secrets
+
+          # Volume mounts for secrets from Key Vault
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+          # Resource limits and requests
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Liveness probe - checks if container is alive
+          # If this fails, Kubernetes will restart the container
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 60  # Wait 60s before first check
+            periodSeconds: 30        # Check every 30s
+            timeoutSeconds: 10       # Timeout after 10s
+            successThreshold: 1      # Must succeed once to be considered healthy
+            failureThreshold: 3      # Restart after 3 consecutive failures
+
+          # Readiness probe - checks if container is ready to serve traffic
+          # If this fails, Kubernetes will stop sending traffic to the pod
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 30  # Wait 30s before first check
+            periodSeconds: 10        # Check every 10s
+            timeoutSeconds: 5        # Timeout after 5s
+            successThreshold: 1      # Must succeed once to be considered ready
+            failureThreshold: 3      # Mark unready after 3 consecutive failures
+
+          # Startup probe - checks if application has started
+          # Gives the app more time to start before liveness/readiness probes begin
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 12     # 12 * 10s = 120s to start
+
+          # Security context for the container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # Next.js needs to write to cache
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes - Azure Key Vault CSI Driver
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "azure-keyvault-sms-app"
+
+      # Restart policy
+      restartPolicy: Always
+
+      # DNS policy
+      dnsPolicy: ClusterFirst
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 30

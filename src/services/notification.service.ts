@@ -306,4 +306,7 @@ export class NotificationService {
       return data;
     }
   }
-} 
+}
+
+// Export singleton instance
+export const notificationService = NotificationService.getInstance(); 

@@ -1,0 +1,32 @@
+# ============================================
+# CONFIGMAP - Non-sensitive Configuration
+# Contains environment variables that are not secrets
+# ============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sms-app-config
+  namespace: default
+  labels:
+    app: sms-app
+    environment: dev
+data:
+  # Node Environment
+  NODE_ENV: "production"
+
+  # Database Configuration
+  DATABASE_PROVIDER: "azure"
+  AZURE_POSTGRES_PORT: "5432"
+  AZURE_POSTGRES_SSL: "true"
+
+  # Application URLs
+  NEXT_PUBLIC_APP_URL: "http://sms-app.eastus.cloudapp.azure.com"
+
+  # Next.js Configuration
+  NEXT_TELEMETRY_DISABLED: "1"
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+
+  # Supabase Configuration (placeholders for build compatibility)
+  NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-key"

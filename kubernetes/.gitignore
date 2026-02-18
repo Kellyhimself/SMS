@@ -1,0 +1,32 @@
+# ============================================
+# KUBERNETES .gitignore
+# Prevents committing sensitive files
+# ============================================
+
+# Secrets with real values
+**/secret.yaml
+**/secrets.yaml
+
+# Kubeconfig files
+kubeconfig
+*.kubeconfig
+
+# Helm charts (if added later)
+charts/
+*.tgz
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.iml

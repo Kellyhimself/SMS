@@ -1,0 +1,38 @@
+# ============================================
+# SERVICE - Load Balancer
+# Exposes the application to external traffic
+# ============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: sms-app-service
+  namespace: default
+  labels:
+    app: sms-app
+    environment: dev
+  annotations:
+    # Azure Load Balancer annotations
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: "/api/health"
+spec:
+  type: LoadBalancer  # Creates an Azure Load Balancer with public IP
+
+  # Session affinity - routes requests from same client to same pod
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+
+  # Selector to route traffic to pods with these labels
+  selector:
+    app: sms-app
+    environment: dev
+
+  # Port configuration
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80          # External port (what users connect to)
+      targetPort: 3000  # Internal container port (where Next.js listens)
+
+  # Health check configuration
+  healthCheckNodePort: 0  # Auto-assign

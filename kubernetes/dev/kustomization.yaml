@@ -1,0 +1,27 @@
+# ============================================
+# KUSTOMIZATION - Kubernetes Resource Management
+# Manages all Kubernetes resources for the dev environment
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace for all resources
+namespace: default
+
+# Common labels applied to all resources
+commonLabels:
+  app: sms-app
+  environment: dev
+  managed-by: kustomize
+
+# Resources to deploy
+resources:
+  - configmap.yaml
+  - secretproviderclass.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Images to use (for easy version updates)
+images:
+  - name: smscentraldev.azurecr.io/sms-app
+    newTag: v1.0.0

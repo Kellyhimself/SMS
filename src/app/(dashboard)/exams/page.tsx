@@ -261,10 +261,11 @@ export default function ExamsPage() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Student</TableHead>
+                  <TableHead>Class</TableHead>
                   <TableHead>Subject</TableHead>
-                  <TableHead>Grade</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Score</TableHead>
                   <TableHead>Term</TableHead>
-                  <TableHead>Academic Year</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -280,10 +281,24 @@ export default function ExamsPage() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{exam.subject}</TableCell>
                     <TableCell>{exam.grade}</TableCell>
+                    <TableCell>{exam.subject}</TableCell>
+                    <TableCell>{exam.exam_type}</TableCell>
+                    <TableCell>
+                      {exam.score != null ? (
+                        <span className={
+                          exam.score >= 80 ? 'text-green-600 font-medium' :
+                          exam.score >= 60 ? 'text-blue-600 font-medium' :
+                          exam.score >= (exam.passing_marks || 40) ? 'text-yellow-600 font-medium' :
+                          'text-red-600 font-medium'
+                        }>
+                          {exam.score}/{exam.total_marks}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{exam.term}</TableCell>
-                    <TableCell>{exam.academic_year}</TableCell>
                     <TableCell>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Link href={`/exams/${exam.id}/results`}>

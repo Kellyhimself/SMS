@@ -35,4 +35,28 @@ next-env.d.ts
 
 # IDE
 .idea/
-.vscode/ 
+.vscode/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Azure CLI
+.azure/
+
+# Windows reserved device names
+nul
+
+# Docker build artifacts
+sms-app.tar
